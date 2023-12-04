@@ -59,7 +59,10 @@ function removeGlare(image) {
   if (minMaxValues.maxVal >= 253.0 && minMaxValues.minVal > 0.0 && minMaxValues.minVal < 20.0) {
     image.brightness(-0.5); 
     image.contrast(0.25)
-    image.color([{ apply: 'mix', params: ['#ff0000', 15] }]);
+    // image.color([{ apply: 'mix', params: ['#ff0000', 15] }]);
+    image.color([
+      { apply: 'desaturate', params: [50] }
+    ]);
     image.convolute([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
   } 
 }
