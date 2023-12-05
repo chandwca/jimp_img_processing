@@ -16,6 +16,32 @@ app.get('/', (req, res) => {
 });
 
 // Define a route for image processing
+// app.post('/processImage', upload.single('image'), async (req, res, next) => {
+//   try {
+//     if (!req.file) {
+//       // No file provided
+//       return res.status(400).send('No image file uploaded.');
+//     }
+
+//     // Use Jimp to process the image
+//     console.log('Received POST request to /processImage');
+//     const image = await Jimp.read(req.file.buffer);
+
+//     // Perform glare removal
+//     removeGlare(image);
+
+//     // Send the processed image back to the client
+//     const processedBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+//     res.writeHead(200, {
+//       'Content-Type': Jimp.MIME_JPEG,
+//       'Content-Length': processedBuffer.length,
+//     });
+//     res.end(processedBuffer);
+//   } catch (error) {
+//     console.error('Error processing image:', error);
+//     next(error); // Pass the error to the next middleware
+//   }
+// });
 app.post('/processImage', upload.single('image'), async (req, res, next) => {
   try {
     if (!req.file) {
@@ -29,9 +55,10 @@ app.post('/processImage', upload.single('image'), async (req, res, next) => {
 
     // Perform glare removal
     removeGlare(image);
-
-    // Send the processed image back to the client
+    // Send the processed image back to the client for download
     const processedBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+    res.setHeader('Content-Disposition', 'attachment; filename=processed_image.jpg');
+    //send response as a downloadable file
     res.writeHead(200, {
       'Content-Type': Jimp.MIME_JPEG,
       'Content-Length': processedBuffer.length,
@@ -39,7 +66,7 @@ app.post('/processImage', upload.single('image'), async (req, res, next) => {
     res.end(processedBuffer);
   } catch (error) {
     console.error('Error processing image:', error);
-    next(error); // Pass the error to the next middleware
+    next(error); 
   }
 });
 
@@ -57,12 +84,16 @@ function removeGlare(image) {
 
   const minMaxValues = getMinMaxValues(image);
   if (minMaxValues.maxVal >= 253.0 && minMaxValues.minVal > 0.0 && minMaxValues.minVal < 20.0) {
+    //decrease brightness 
     image.brightness(-0.5); 
+    //increase contrast
     image.contrast(0.25)
-    // image.color([{ apply: 'mix', params: ['#ff0000', 15] }]);
+    // image.color([{ apply: 'mix', params: ['#ff0000', 30] }]);
+    //reduces saturature of colors in an image(making it more like greyscale)
     image.color([
       { apply: 'desaturate', params: [50] }
     ]);
+    //making light and dark areas visible
     image.convolute([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
   } 
 }
@@ -79,17 +110,6 @@ function getMinMaxValues(image) {
 
   return { minVal, maxVal };
 }
-
-
-app.get('/', (req, res) => {
-  res.send(
-    '<form action="/processImage" method="post" enctype="multipart/form-data">' +
-      '<input type="file" name="image" />' +
-      '<input type="submit" value="Upload Image" />' +
-      '</form>'
-  );
-});
-
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
